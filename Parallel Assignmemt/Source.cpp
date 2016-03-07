@@ -6,13 +6,14 @@
 #include <vector>
 #include <CL\/cl.h>
 #include "Utils.h"
+#include <stdlib.h>
 
 std::vector<string> tempLocation;
 std::vector<int> tempYear;
 std::vector<int> tempMonth;
 std::vector<int> tempDay;
 std::vector<int> tempTime;
-std::vector<float> tempTemp;
+std::vector<int> tempTemp;
 
 void print_help() 
 {
@@ -29,7 +30,7 @@ void readData(string file)
 	std::list<string> tempList;
 	string item, line;
 	ifstream dataFile(file);
-	int count = 0;
+	int count = 0, temp = 0;
 	if (dataFile.is_open())
 	{
 		while (getline(dataFile, line))
@@ -66,7 +67,8 @@ void readData(string file)
 					break;
 				case 5:
 					//cout << "Temp: " << item << endl;
-					tempTemp.push_back(stof(item));
+					temp = (int)(stof(item)*100);
+					tempTemp.push_back(temp);
 					count = 0;
 					break;
 				default:
@@ -86,62 +88,58 @@ void readData(string file)
 // Dosn't work :(
 void minMax(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
-	std::cout << "MinMax starting..." << endl;
-
-	size_t localSize = 64; // For now
+	size_t localSize = 2; // For now
 	size_t paddingSize = tempTemp.size() % localSize;
 
 	if (paddingSize)
 	{
-		std::vector<float> temp(localSize - paddingSize, 0.0);
+		std::vector<int> temp(localSize - paddingSize, 0.0);
 		tempTemp.insert(tempTemp.end(), temp.begin(), temp.end());
 	}
 
 	size_t inputElements = tempTemp.size();
-	size_t inputSize = tempTemp.size()*sizeof(float);
+	size_t inputSize = tempTemp.size()*sizeof(int);
 
-	std::vector<float> min(inputElements);
-	std::vector<float> max(inputElements);
-	size_t outputSize = inputElements * sizeof(float);
+	std::vector<int> minMax(2);
+	size_t outputSize = 2 * sizeof(int);
 
 	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);
-	cl::Buffer maxBuffer(context, CL_MEM_READ_WRITE, outputSize);
-	cl::Buffer minBuffer(context, CL_MEM_READ_WRITE, outputSize);
+	cl::Buffer output(context, CL_MEM_READ_WRITE, outputSize);
 
 	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTemp[0]);
-	queue.enqueueFillBuffer(maxBuffer, 0, 0, outputSize);
-	queue.enqueueFillBuffer(minBuffer, 0, 0, outputSize);
+	queue.enqueueFillBuffer(output, 0, 0, outputSize);
 
 	cl::Kernel kernel = cl::Kernel(program, "minMax");
 	kernel.setArg(0, inputBuffer);
-	kernel.setArg(1, maxBuffer);
-	kernel.setArg(2, minBuffer);
+	kernel.setArg(1, output);
+	kernel.setArg(2, cl::Local(localSize*sizeof(int)));
+	kernel.setArg(3, cl::Local(localSize*sizeof(int)));
 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
-	queue.enqueueReadBuffer(maxBuffer, CL_TRUE, 0, outputSize, &max[0]);
-	queue.enqueueReadBuffer(minBuffer, CL_TRUE, 0, outputSize, &min[0]);
+	queue.enqueueReadBuffer(output, CL_TRUE, 0, outputSize, &minMax[0]);
 
-	std::cout << "Minimum: " << min.at(0) << endl << "Maximum: " << max.at(0) << endl;
+	std::cout << "Minimum: " << (float)minMax.at(0)/100.0 << endl << "Maximum: " << (float)minMax.at(1)/100.0 << endl;
 }
 
-// Works (Somewhat)
+// Works!
 void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
-	cout << "Starting average..." << endl;
-	size_t localSize = 1000; // For now
+	size_t localSize = 2; // For now
 	size_t paddingSize = tempTemp.size() % localSize;
+
+	size_t number = tempTemp.size();
 
 	if (paddingSize)
 	{
-		std::vector<float> temp(localSize - paddingSize, 0.0);
+		std::vector<int> temp(localSize - paddingSize, 0);
 		tempTemp.insert(tempTemp.end(), temp.begin(), temp.end());
 	}
 
 	size_t inputElements = tempTemp.size();
-	size_t inputSize = tempTemp.size()*sizeof(float);
+	size_t inputSize = tempTemp.size()*sizeof(int);
 
-	std::vector<float> output(inputElements);
-	size_t outputSize = output.size() * sizeof(float);
+	std::vector<int> output(inputElements);
+	size_t outputSize = output.size() * sizeof(int);
 
 	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);
 	cl::Buffer outputBuffer(context, CL_MEM_READ_WRITE, outputSize);
@@ -152,12 +150,13 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	cl::Kernel kernel = cl::Kernel(program, "add");
 	kernel.setArg(0, inputBuffer);
 	kernel.setArg(1, outputBuffer);
+	kernel.setArg(2, cl::Local(localSize*sizeof(int)));
 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
 	queue.enqueueReadBuffer(outputBuffer, CL_TRUE, 0, outputSize, &output[0]);
 
-	float answer = output[0];
-	cout << answer << endl;
+	float answer = ((float)output[0]/ (float)100) / (float)number;
+	cout << "Average: " << answer << endl;
 }
 
 int main(int argc, char **argv)
@@ -198,7 +197,7 @@ int main(int argc, char **argv)
 		readData("temp_lincolnshire_short.txt");
 		cout << "Reading " << tempLocation.size() << " temperatures" << endl;
 		
-		//minMax(context, queue, program);
+		minMax(context, queue, program);
 		average(context, queue, program);
 	}
 	catch (cl::Error err)
