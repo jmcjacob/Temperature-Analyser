@@ -1,29 +1,81 @@
-__kernel void reduce_add_1(__global const int* A, __global int* B) {
+__kernel void minMax(__global const float* input, __global float* output, __local float* maxValue, __local float* minValue)
+{
 	int id = get_global_id(0);
-	int N = get_global_size(0);
+	int lid = get_local_id(0);
+	int N = get_local_size(0);
+	
+	maxValue[lid] = input[id];
+	minValue[lid] = input[id];
 
-	B[id] = A[id]; //copy input to output
+	barrier(CLK_LOCAL_MEM_FENCE);
 
-	barrier(CLK_GLOBAL_MEM_FENCE); //wait for all threads to finish copying
-	 
-	//perform reduce on the output array
-	//modulo operator is used to skip a set of values (e.g. 2 in the next line)
-	//we also check if the added element is within bounds (i.e. < N)
-	if (((id % 2) == 0) && ((id + 1) < N)) 
-		B[id] += B[id + 1];
+	for(int i = 1; i < N; i *= 2)
+	{
+		if (!(lid % (i * 2)) && ((lid + i) < N))
+		{
+			if (maxValue[lid] < maxValue[lid + i]) 
+				maxValue[lid] = maxValue[lid + i];
+			if (minValue[lid] > minValue[lid + i]) 
+				minValue[lid] = minValue[lid + i];
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+	output[0] = minValue[lid];
+	output[1] = maxValue[lid];
+}
 
-	barrier(CLK_GLOBAL_MEM_FENCE);
+__kernel void add(__global const float* input, __global float* output, const int inputSize, __local float* sum) 
+{
+	const int globalID = get_global_id(0);
+	const int localID = get_local_id(0);
+	const int localSize = get_local_size(0);
+	const int workgroupID = globalID / localSize;
 
-	if (((id % 4) == 0) && ((id + 2) < N)) 
-		B[id] += B[id + 2];
+	sum[localID] = input[globalID];
 
-	barrier(CLK_GLOBAL_MEM_FENCE);
+	for (int offset = localSize / 2; offset > 0; offset /= 2)
+	{
+		barrier(CLK_LOCAL_MEM_FENCE);
+		if (localID < offset)
+		{
+			sum[localID] += sum[localID + offset];
+		}
+	}
+	if (localID == 0)
+	{
+		output[workgroupID = sum[0]];
+	}
+}
 
-	if (((id % 8) == 0) && ((id + 4) < N)) 
-		B[id] += B[id + 4];
+__kernel void reduce(__global float* buffer, __local float* scratch, __global float* result) 
+{
+	int global_index = get_global_id(0);
+	int local_index = get_local_id(0);
+	int length = get_local_size(0);
 
-	barrier(CLK_GLOBAL_MEM_FENCE);
-
-	if (((id % 16) == 0) && ((id + 8) < N)) 
-		B[id] += B[id + 8];
+	// Load data into local memory
+	if (global_index < length) 
+	{
+		scratch[local_index] = buffer[global_index];
+	} 
+	else 
+	{
+		// Infinity is the identity element for the min operation
+		scratch[local_index] = INFINITY;
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	for(int offset = get_local_size(0) / 2; offset > 0; offset >>= 1)
+	{
+		if (local_index < offset) 
+		{
+			float other = scratch[local_index + offset];
+			float mine = scratch[local_index];
+			scratch[local_index] = (mine < other) ? mine : other;
+		}
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+	if (local_index == 0) 
+	{
+		result[get_group_id(0)] = scratch[0];
+	}
 }
