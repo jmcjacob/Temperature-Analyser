@@ -1,24 +1,3 @@
-__kernel void minMax2(__global const float* A, __global float* B, __global float* C)
-{
-	int id = get_global_id(0);
-	int N = get_global_size(0);
-
-	B[id] = A[id];
-	C[id] = A[id];
-	barrier(CLK_GLOBAL_MEM_FENCE);
-
-	for (int stride = N/2; stride >= 1; stride /= 2)
-	{
-		if (!(id % (stride * 2)) && ((id + stride) < N))
-		{
-			B[id] = fmin(B[id], B[id+stride]);
-			C[id] = fmax(C[id], C[id+stride]);
-		}
-		barrier(CLK_GLOBAL_MEM_FENCE);
-	}
-
-}
-
 __kernel void add(__global const int* A, __global int* B, __local int* scratch) 
 {
 	int id = get_global_id(0);
@@ -64,4 +43,13 @@ __kernel void minMax(__global const int* A, __global int* B, __local int* min, _
 		atomic_min(&B[0], min[lid]);
 		atomic_max(&B[1], max[lid]);
 	}
+}
+
+__kernel void hist(__global const int* A, __global int* H)
+{
+	int id = get_global_id(0);
+
+	int bin_index = A[id];
+
+	atomic_inc(&H[bin_index]);
 }
