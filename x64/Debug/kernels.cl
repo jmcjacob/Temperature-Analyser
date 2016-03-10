@@ -45,19 +45,21 @@ __kernel void minMax(__global const int* A, __global int* B, __local int* min, _
 	}
 }
 
-__kernel void hist(__global const int* input, __local int* histogram )
-{
-	int id = get_global_id(0);
-	int lid = get_local_id(0);
+//__kernel void hist2(__global const int* A, __local int* H )
+//{
+//	int id = get_global_id(0);
+//	int lid = get_local_id(0);
+//
+//	int bin_index = A[id];
+//
+//	if (lid < 10)
+//		H[lid] = 0;
+//	barrier(CLK_LOCAL_MEM_FENCE);
+//
+//	atomic_inc(&H[bin_index(A[id])]);
+//}
 
-	if (lid < nr_bins)
-		H[lid] = 0;
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	atomic_inc(&H[bin_index(A[id])]);
-}
-
-__kernel void hist2(__global const int* A, __global int* H)
+__kernel void hist(__global const int* A, __global int* H)
 {
 	int id = get_global_id(0);
 

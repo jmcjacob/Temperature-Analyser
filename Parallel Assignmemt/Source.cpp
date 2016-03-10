@@ -1,6 +1,5 @@
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #define __CL_ENABLE_EXCEPTIONS
-#include <list>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -14,19 +13,9 @@ std::vector<int> tempDay;
 std::vector<int> tempTime;
 std::vector<int> tempTemp;
 
-void print_help() 
-{
-	std::cerr << "Application usage:" << std::endl;
-	std::cerr << "  -p : select platform " << std::endl;
-	std::cerr << "  -d : select device" << std::endl;
-	std::cerr << "  -l : list all platforms and devices" << std::endl;
-	std::cerr << "  -h : print this message" << std::endl;
-}
-
 // Works!
-void readData(string file)
+void readData(string file, string location, int year, int month, int day, int time)
 {
-	std::list<string> tempList;
 	string item, line;
 	ifstream dataFile(file);
 	int count = 0, temp = 0;
@@ -35,44 +24,55 @@ void readData(string file)
 		while (getline(dataFile, line))
 		{
 			stringstream data = stringstream(line);
+			bool write = true;
+			string newLocation;
+			int newYear, newMonth, newDay, newTime, newTemp;
 			while (getline(data, item, ' '))
 			{
 				switch (count)
 				{
 				case 0:
-					//cout << "Location: " << item << endl;
-					tempLocation.push_back(item);
+					newLocation = item;
+					if (item != location && location != "") { write = false; }
 					count++;
 					break;
 				case 1:
-					//cout << "Year: " << item << endl;
-					tempYear.push_back(stoi(item));
+					newYear = stoi(item);
+					if (newYear != year && year != 0) { write = false; }
 					count++;
 					break;
 				case 2:
-					//cout << "Month: " << item << endl;
-					tempMonth.push_back(stoi(item));
+					newMonth = stoi(item);
+					if (newMonth != month && month != 0) { write = false; }
 					count++;
 					break;
 				case 3:
-					//cout << "Day: " << item << endl;
-					tempDay.push_back(stoi(item));
+					newDay = stoi(item);
+					if (newDay != day && day != 0) { write = false; }
 					count++;
 					break;
 				case 4:
-					//cout << "Time: " << item << endl;
-					tempTime.push_back(stoi(item));
+					newTime = stoi(item);
+					if (newTime != time && time != 0) { write = false; }
 					count++;
 					break;
 				case 5:
-					//cout << "Temp: " << item << endl;
 					temp = (int)(stof(item)*100);
-					tempTemp.push_back(temp);
+					if (write)
+					{
+						tempLocation.push_back(newLocation);
+						tempYear.push_back(newYear);
+						tempMonth.push_back(newMonth);
+						tempDay.push_back(newDay);
+						tempTime.push_back(newTime);
+						tempTemp.push_back(temp);
+					}
 					count = 0;
 					break;
 				default:
 					break;
 				}
+				
 			}
 		}
 		dataFile.close();
@@ -156,7 +156,7 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
 	queue.enqueueReadBuffer(outputBuffer, CL_TRUE, 0, outputSize, &output[0]);
 
-	float answer = ((float)output[0]/ (float)100) / (float)number;
+	float answer = ((float)output[0]/ 100.0) / (float)number;
 	cout << "Average: " << answer << endl;
 }
 
@@ -189,13 +189,21 @@ int main(int argc, char **argv)
 {
 	int platform_id = 0;
 	int device_id = 0;
+	string location = "";
+	int year = 0;
+	int month = 0;
+	int day = 0;
+	int time = 0;
 
 	for (int i = 1; i < argc; i++) 
 	{
 		if ((strcmp(argv[i], "-p") == 0) && (i < (argc - 1))) { platform_id = atoi(argv[++i]); }
 		else if ((strcmp(argv[i], "-d") == 0) && (i < (argc - 1))) { device_id = atoi(argv[++i]); }
-		else if (strcmp(argv[i], "-l") == 0) { std::cout << ListPlatformsDevices() << std::endl; }
-		else if (strcmp(argv[i], "-h") == 0) { print_help(); }
+		else if ((strcmp(argv[i], "--Location") == 0) && (i < (argc - 1))) { location = argv[++i]; }
+		else if ((strcmp(argv[i], "--Year") == 0) && (i < (argc - 1))) { year = atoi(argv[++i]); }
+		else if ((strcmp(argv[i], "--Month") == 0) && (i < (argc - 1))) { month = atoi(argv[++i]); }
+		else if ((strcmp(argv[i], "--Day") == 0) && (i < (argc - 1))) { day = atoi(argv[++i]); }
+		else if ((strcmp(argv[i], "--Time") == 0) && (i < (argc - 1))) { time = atoi(argv[++i]); }
 	}
 
 	try
@@ -207,7 +215,6 @@ int main(int argc, char **argv)
 		
 		AddSources(sources, "kernels.cl");
 		cl::Program program(context, sources);
-
 		try
 		{
 			program.build();
@@ -219,13 +226,13 @@ int main(int argc, char **argv)
 			std::cout << "Build Log:\t " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(context.getInfo<CL_CONTEXT_DEVICES>()[0]) << std::endl;
 			throw err;
 		}
-
-		readData("temp_lincolnshire_short.txt");
-		cout << "Reading " << tempLocation.size() << " temperatures" << endl;
+		
+		readData("temp_lincolnshire_short.txt", location, year, month, day, time);
+		std::cout << "Reading " << tempLocation.size() << " temperatures" << endl;
 		
 		//minMax(context, queue, program);
 		//average(context, queue, program);
-		hisogram(context, queue, program);
+		//hisogram(context, queue, program);
 	}
 	catch (cl::Error err)
 	{
