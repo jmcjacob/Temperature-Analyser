@@ -93,7 +93,7 @@ void minMax(cl::Context context, cl::CommandQueue queue, cl::Program program)
 
 	if (paddingSize)
 	{
-		std::vector<int> temp(localSize - paddingSize, 0.0);
+		std::vector<int> temp(localSize - paddingSize, NULL);
 		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
 	}
 
@@ -118,7 +118,7 @@ void minMax(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
 	queue.enqueueReadBuffer(output, CL_TRUE, 0, outputSize, &minMax[0]);
 
-	std::cout << "Minimum: " << (float)minMax.at(0)/100.0 << endl << "Maximum: " << (float)minMax.at(1)/100.0 << endl;
+	std::cout << "Minimum: " << (float)minMax.at(0)/(float)100 << endl << "Maximum: " << (float)minMax.at(1)/(float)100 << endl;
 }
 
 // Works!
@@ -156,11 +156,11 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
 	queue.enqueueReadBuffer(outputBuffer, CL_TRUE, 0, outputSize, &output[0]);
 
-	float answer = ((float)output[0]/ 100.0) / (float)number;
+	float answer = ((float)output[0]/ (float)100) / (float)number;
 	cout << "Average: " << answer << endl;
 }
 
-// Works but is shit
+// Not Working
 void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	size_t inputElements = tempTemp.size();
@@ -230,8 +230,8 @@ int main(int argc, char **argv)
 		readData("temp_lincolnshire_short.txt", location, year, month, day, time);
 		std::cout << "Reading " << tempLocation.size() << " temperatures" << endl;
 		
-		//minMax(context, queue, program);
-		//average(context, queue, program);
+		minMax(context, queue, program);
+		average(context, queue, program);
 		//hisogram(context, queue, program);
 	}
 	catch (cl::Error err)
