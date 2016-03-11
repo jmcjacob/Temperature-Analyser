@@ -57,7 +57,7 @@ void readData(string file, string location, int year, int month, int day, int ti
 					count++;
 					break;
 				case 5:
-					temp = (int)(stof(item)*100);
+					temp = (int)(stof(item)*10);
 					if (write)
 					{
 						tempLocation.push_back(newLocation);
@@ -84,24 +84,25 @@ void readData(string file, string location, int year, int month, int day, int ti
 	}
 }
 
-// Works!
-void minMax(cl::Context context, cl::CommandQueue queue, cl::Program program)
+int min(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 512; // For now
+	size_t localSize = 2; // For now
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	if (paddingSize)
 	{
-		std::vector<int> temp(localSize - paddingSize, NULL);
+		std::vector<int> temp(localSize - paddingSize, 9999);
 		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
 	}
+
+	//std::cout << tempTempTemp << endl;
 
 	size_t inputElements = tempTempTemp.size();
 	size_t inputSize = tempTempTemp.size()*sizeof(int);
 
-	std::vector<int> minMax(2);
-	size_t outputSize = 2 * sizeof(int);
+	std::vector<int> min(1);
+	size_t outputSize = sizeof(int);
 
 	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);
 	cl::Buffer output(context, CL_MEM_READ_WRITE, outputSize);
@@ -109,16 +110,54 @@ void minMax(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTempTemp[0]);
 	queue.enqueueFillBuffer(output, 0, 0, outputSize);
 
-	cl::Kernel kernel = cl::Kernel(program, "minMax");
+	cl::Kernel kernel = cl::Kernel(program, "Min");
 	kernel.setArg(0, inputBuffer);
 	kernel.setArg(1, output);
 	kernel.setArg(2, cl::Local(localSize*sizeof(int)));
-	kernel.setArg(3, cl::Local(localSize*sizeof(int)));
 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
-	queue.enqueueReadBuffer(output, CL_TRUE, 0, outputSize, &minMax[0]);
+	queue.enqueueReadBuffer(output, CL_TRUE, 0, outputSize, &min[0]);
 
-	std::cout << "Minimum: " << (float)minMax.at(0)/(float)100 << endl << "Maximum: " << (float)minMax.at(1)/(float)100 << endl;
+	std::cout << "Minimum: " << (float)min.at(0) / (float)10 << endl;
+
+	return min.at(0);
+}
+
+int max(cl::Context context, cl::CommandQueue queue, cl::Program program)
+{
+	vector<int> tempTempTemp = tempTemp;
+	size_t localSize = 512; // For now
+	size_t paddingSize = tempTempTemp.size() % localSize;
+
+	if (paddingSize)
+	{
+		std::vector<int> temp(localSize - paddingSize, INT_MIN);
+		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
+	}
+
+	size_t inputElements = tempTempTemp.size();
+	size_t inputSize = tempTempTemp.size()*sizeof(int);
+
+	std::vector<int> max(1);
+	size_t outputSize = sizeof(int);
+
+	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);
+	cl::Buffer output(context, CL_MEM_READ_WRITE, outputSize);
+
+	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTempTemp[0]);
+	queue.enqueueFillBuffer(output, 0, 0, outputSize);
+
+	cl::Kernel kernel = cl::Kernel(program, "Max");
+	kernel.setArg(0, inputBuffer);
+	kernel.setArg(1, output);
+	kernel.setArg(2, cl::Local(localSize*sizeof(int)));
+
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
+	queue.enqueueReadBuffer(output, CL_TRUE, 0, outputSize, &max[0]);
+
+	std::cout << "Maximum: " << (float)max.at(0) / (float)10 << endl;
+
+	return max.at(0);
 }
 
 // Works!
@@ -156,31 +195,46 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(localSize));
 	queue.enqueueReadBuffer(outputBuffer, CL_TRUE, 0, outputSize, &output[0]);
 
-	float answer = ((float)output[0]/ (float)100) / (float)number;
+	float answer = ((float)output[0]/ (float)10) / (float)number;
 	cout << "Average: " << answer << endl;
 }
 
 // Not Working
-void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program)
+void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, int min, int max)
 {
-	size_t inputElements = tempTemp.size();
-	size_t inputSize = inputElements * sizeof(int);
+	vector<int> tempTempTemp = tempTemp;
+	size_t histoElements = ((max / 10) - (min / 10)) + 1;
+	size_t paddingSize = tempTempTemp.size() % histoElements;
 
-	std::vector<int> hisogram(inputElements);
-	size_t histoSize = hisogram.size() * sizeof(int);
+	size_t number = tempTempTemp.size();
+
+	if (paddingSize)
+	{
+		std::vector<int> temp(histoElements - paddingSize, max * 2);
+		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
+	}
+
+	size_t inputElements = tempTempTemp.size();
+	size_t inputSize = tempTempTemp.size()*sizeof(int);
+
+	std::vector<int> hisogram(histoElements + 1);
+	hisogram[0] = (min / 10);
+	size_t histoSize = histoElements * sizeof(int);
 
 	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);
-	cl::Buffer histoBuffer(context, CL_MEM_READ_WRITE, histoSize);
+	cl::Buffer histoBuffer(context, CL_MEM_READ_WRITE, histoSize + sizeof(int));
 
 	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTemp[0]);
-	queue.enqueueFillBuffer(histoBuffer, 0, 0, histoSize);
+	queue.enqueueWriteBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);
 
 	cl::Kernel kernel = cl::Kernel(program, "hist");
 	kernel.setArg(0, inputBuffer);
-	kernel.setArg(1, histoBuffer);
+	kernel.setArg(1, cl::Local(histoSize*sizeof(int)));
+	kernel.setArg(2, histoBuffer);
 
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NullRange);
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(histoElements));
 	queue.enqueueReadBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);
+	hisogram.pop_back();
 
 	cout << hisogram << endl;
 }
@@ -230,9 +284,10 @@ int main(int argc, char **argv)
 		readData("temp_lincolnshire_short.txt", location, year, month, day, time);
 		std::cout << "Reading " << tempLocation.size() << " temperatures" << endl;
 		
-		minMax(context, queue, program);
+		int minumum = min(context, queue, program);
+		int maximum = max(context, queue, program);
 		average(context, queue, program);
-		//hisogram(context, queue, program);
+		hisogram(context, queue, program, minumum, maximum);
 	}
 	catch (cl::Error err)
 	{
