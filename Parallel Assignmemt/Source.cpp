@@ -88,7 +88,7 @@ void readData(string file, string location, int year, int month, int day, int ti
 void minMax(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 2; // For now
+	size_t localSize = 512; // For now
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	if (paddingSize)
@@ -125,7 +125,7 @@ void minMax(cl::Context context, cl::CommandQueue queue, cl::Program program)
 void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 2; // For now
+	size_t localSize = 512; // For now
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	size_t number = tempTempTemp.size();
@@ -139,7 +139,7 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	size_t inputElements = tempTempTemp.size();
 	size_t inputSize = tempTempTemp.size()*sizeof(int);
 
-	std::vector<int> output(inputElements);
+	std::vector<int> output(1);
 	size_t outputSize = output.size() * sizeof(int);
 
 	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);

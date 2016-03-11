@@ -31,10 +31,10 @@ __kernel void minMax(__global const int* A, __global int* B, __local int* min, _
 	{
 		if (!(lid % (i * 2)) && ((lid + i) < N))
 		{
-			if (min[id] > min[id+i])
-				min[id] = min[id+i];
-			if (max[id] < max[id+i])
-				max[id] = max[id+i];
+			if (min[lid] > min[lid+i])
+				min[lid] = min[lid+i];
+			if (max[lid] < max[lid+i])
+				max[lid] = max[lid+i];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
