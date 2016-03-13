@@ -221,7 +221,7 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 
 	if (paddingSize)
 	{
-		std::vector<int> temp(localSize - paddingSize, INT32_MAX);
+		std::vector<int> temp(localSize - paddingSize, min);
 		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
 	}
 
@@ -249,6 +249,8 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(bins));
 	queue.enqueueReadBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);
 
+	hisogram.at(0) = hisogram.at(0) - (localSize - paddingSize);
+
 	cout << hisogram << endl;
 }
 
@@ -258,6 +260,7 @@ int main(int argc, char **argv)
 	int platform_id = 0; int device_id = 0;
 	int year = 0; int month = 0;
 	int day = 0; int time = 0;
+	string file = "temp_lincolnshire.txt";
 
 	for (int i = 1; i < argc; i++) 
 	{
@@ -269,6 +272,7 @@ int main(int argc, char **argv)
 		else if ((strcmp(argv[i], "--Day") == 0) && (i < (argc - 1))) { day = atoi(argv[++i]); }
 		else if ((strcmp(argv[i], "--Time") == 0) && (i < (argc - 1))) { time = atoi(argv[++i]); }
 		else if ((strcmp(argv[i], "--Bins") == 0) && (i < (argc - 1))) { bins = atoi(argv[++i]); }
+		else if ((strcmp(argv[i], "--Short") == 0) && (i < (argc - 1))) { if (atoi(argv[++i]) == 1) { file = "temp_lincolnshire_short.txt"; } }
 	}
 
 	try
@@ -292,7 +296,7 @@ int main(int argc, char **argv)
 			throw err;
 		}
 		
-		readData("temp_lincolnshire_short.txt", location, year, month, day, time);
+		readData(file, location, year, month, day, time);
 		std::cout << "Reading " << tempLocation.size() << " temperatures" << endl;
 		
 		int minumum = min(context, queue, program);
