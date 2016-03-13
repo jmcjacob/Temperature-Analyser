@@ -84,6 +84,7 @@ void readData(string file, string location, int year, int month, int day, int ti
 	}
 }
 
+// Works (But has an error with setting 0 as the minimum)
 int min(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	vector<int> tempTempTemp = tempTemp;
@@ -123,6 +124,7 @@ int min(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	return min.at(0);
 }
 
+// Works!
 int max(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	vector<int> tempTempTemp = tempTemp;
@@ -199,55 +201,63 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	cout << "Average: " << answer << endl;
 }
 
-// Not Working
-void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, int min, int max)
+// Works but is not efficient!
+void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, int min, int max, int bins)
 {
+	size_t localSize = bins; // For now
+	int range = max - min;
+	float step = range / bins;
+	vector<float> steps(bins);
+	for (int i = 1; i <= bins; i++)
+	{
+		steps.at(i - 1) = min + step * i;
+	}
+	if (steps.at(bins-1) != max) { steps.at(bins-1) = max+1; }
+
 	vector<int> tempTempTemp = tempTemp;
-	size_t histoElements = ((max / 10) - (min / 10)) + 1;
-	size_t paddingSize = tempTempTemp.size() % histoElements;
+	size_t paddingSize = tempTempTemp.size() % bins;
 
 	size_t number = tempTempTemp.size();
 
 	if (paddingSize)
 	{
-		std::vector<int> temp(histoElements - paddingSize, max * 2);
+		std::vector<int> temp(localSize - paddingSize, INT32_MAX);
 		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
 	}
 
 	size_t inputElements = tempTempTemp.size();
 	size_t inputSize = tempTempTemp.size()*sizeof(int);
 
-	std::vector<int> hisogram(histoElements + 1);
-	hisogram[0] = (min / 10);
-	size_t histoSize = histoElements * sizeof(int);
+	std::vector<int> hisogram(bins);
+	size_t histoSize = bins * sizeof(int);
+	size_t stepSize = bins * sizeof(float);
 
 	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);
-	cl::Buffer histoBuffer(context, CL_MEM_READ_WRITE, histoSize + sizeof(int));
+	cl::Buffer histoBuffer(context, CL_MEM_READ_WRITE, histoSize);
+	cl::Buffer stepBuffer(context, CL_MEM_READ_ONLY, stepSize);
 
 	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTemp[0]);
-	queue.enqueueWriteBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);
+	queue.enqueueFillBuffer(histoBuffer, 0, 0, histoSize);
+	queue.enqueueWriteBuffer(stepBuffer, CL_TRUE, 0, stepSize, &steps[0]);
 
 	cl::Kernel kernel = cl::Kernel(program, "hist");
 	kernel.setArg(0, inputBuffer);
-	kernel.setArg(1, cl::Local(histoSize*sizeof(int)));
+	kernel.setArg(1, cl::Local(localSize*sizeof(int)));
 	kernel.setArg(2, histoBuffer);
+	kernel.setArg(3, stepBuffer);
 
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(histoElements));
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(bins));
 	queue.enqueueReadBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);
-	hisogram.pop_back();
 
 	cout << hisogram << endl;
 }
 
 int main(int argc, char **argv)
 {
-	int platform_id = 0;
-	int device_id = 0;
-	string location = "";
-	int year = 0;
-	int month = 0;
-	int day = 0;
-	int time = 0;
+	string location = ""; int bins = 0;
+	int platform_id = 0; int device_id = 0;
+	int year = 0; int month = 0;
+	int day = 0; int time = 0;
 
 	for (int i = 1; i < argc; i++) 
 	{
@@ -258,6 +268,7 @@ int main(int argc, char **argv)
 		else if ((strcmp(argv[i], "--Month") == 0) && (i < (argc - 1))) { month = atoi(argv[++i]); }
 		else if ((strcmp(argv[i], "--Day") == 0) && (i < (argc - 1))) { day = atoi(argv[++i]); }
 		else if ((strcmp(argv[i], "--Time") == 0) && (i < (argc - 1))) { time = atoi(argv[++i]); }
+		else if ((strcmp(argv[i], "--Bins") == 0) && (i < (argc - 1))) { bins = atoi(argv[++i]); }
 	}
 
 	try
@@ -286,8 +297,11 @@ int main(int argc, char **argv)
 		
 		int minumum = min(context, queue, program);
 		int maximum = max(context, queue, program);
+
+		if (bins == 0) { bins = (maximum - minumum)/10; }
+
 		average(context, queue, program);
-		hisogram(context, queue, program, minumum, maximum);
+		hisogram(context, queue, program, minumum, maximum, bins);
 	}
 	catch (cl::Error err)
 	{

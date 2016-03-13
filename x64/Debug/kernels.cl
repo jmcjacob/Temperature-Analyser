@@ -65,18 +65,34 @@ __kernel void Min(__global const int* A, __global int* B, __local int* min)
 	}
 }
 
-__kernel void hist(__global const int* A, __local int* H, __global int* Histogram)
+__kernel void hist(__global const int* A, __local int* H, __global int* Histogram, __global float* steps)
 {
 	int id = get_global_id(0);
 	int lid = get_local_id(0);
+	int N = get_local_size(0);
 
-	int min = Histogram[0];
-	barrier(CLK_GLOBAL_MEM_FENCE);
+	int bin = 999999;
 
-	int bin = (A[id]/10) - min;
-	barrier(CLK_LOCAL_MEM_FENCE);
+	for (int i = 0; i < N; i++)
+	{
+		if (A[id] <= steps[i])
+		{
+			bin = i;
+			i = N+1;
+		}
+	}
 
-	atomic_inc(&H[bin]);
-	barrier(CLK_GLOBAL_MEM_FENCE);
-	atomic_add(&Histogram[lid+1], H[lid]);
+	if (bin != 999999)
+	{
+		atomic_inc(&Histogram[bin]);
+	}
+	//barrier(CLK_GLOBAL_MEM_FENCE);
+
+	//if (!lid)
+	//{
+	//	for (int i = 0; i < N; i++)
+	//	{
+	//		atomic_add(&Histogram[i], H[i]);
+	//	}
+	//}
 }
