@@ -234,7 +234,8 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 	kernel.setArg(1, cl::Local(localSize*sizeof(int)));
 	kernel.setArg(2, histoBuffer);
 	kernel.setArg(3, bins);
-	kernel.setArg(4, ((float)min/(float)10)*-1);
+	kernel.setArg(4, max);
+	kernel.setArg(5, min);
 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(bins));
 	queue.enqueueReadBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);

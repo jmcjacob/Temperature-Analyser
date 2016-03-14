@@ -65,7 +65,7 @@ __kernel void Min(__global const int* A, __global int* B, __local int* min)
 	}
 }
 
-__kernel void hist(__global const int* A, __local int* H, __global int* Histogram, int nuBins, float thing)
+__kernel void hist(__global const int* A, __local int* H, __global int* Histogram, int nuBins, int max, int min)
 {
 	int id = get_global_id(0);
 	int lid = get_local_id(0);
@@ -82,10 +82,12 @@ __kernel void hist(__global const int* A, __local int* H, __global int* Histogra
 	{
 		return;
 	}
+	int thingy = (max-min)/nuBins;
+	int bin = (index * thingy) - min;
 
-	int bin = (index / 10 ) + thing;
-	bin /= nuBins;
-	bin %= nuBins;
+	//int bin = index - min;
+	//bin *= nuBins;
+	//bin /= (max-min)+ min;
 
 	atomic_inc(&H[bin]);
 
