@@ -84,15 +84,11 @@ __kernel void hist(__global const int* A, __local int* H, __global int* Histogra
 
 	if (bin != 999999)
 	{
-		atomic_inc(&Histogram[bin]);
+		atomic_inc(&H[bin]);
 	}
-	//barrier(CLK_GLOBAL_MEM_FENCE);
 
-	//if (!lid)
-	//{
-	//	for (int i = 0; i < N; i++)
-	//	{
-	//		atomic_add(&Histogram[i], H[i]);
-	//	}
-	//}
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if (lid < N)
+		printf(H[lid]);
+		atomic_add(&Histogram[lid], H[lid]);
 }

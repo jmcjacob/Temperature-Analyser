@@ -93,7 +93,7 @@ int min(cl::Context context, cl::CommandQueue queue, cl::Program program)
 
 	if (paddingSize)
 	{
-		std::vector<int> temp(localSize - paddingSize, 9999);
+		std::vector<int> temp(localSize - paddingSize, INT_MAX);
 		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
 	}
 
@@ -109,7 +109,7 @@ int min(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	cl::Buffer output(context, CL_MEM_READ_WRITE, outputSize);
 
 	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTempTemp[0]);
-	queue.enqueueFillBuffer(output, 0, 0, outputSize);
+	queue.enqueueFillBuffer(output, INT_MAX, 0, outputSize);
 
 	cl::Kernel kernel = cl::Kernel(program, "Min");
 	kernel.setArg(0, inputBuffer);
@@ -204,7 +204,7 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 // Works but is not efficient!
 void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, int min, int max, int bins)
 {
-	size_t localSize = bins; // For now
+	size_t localSize = bins; 
 	int range = max - min;
 	float step = range / bins;
 	vector<float> steps(bins);
@@ -249,7 +249,7 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(bins));
 	queue.enqueueReadBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);
 
-	hisogram.at(0) = hisogram.at(0) - (localSize - paddingSize);
+	//hisogram.at(0) = hisogram.at(0) - paddingSize;
 
 	cout << hisogram << endl;
 }
