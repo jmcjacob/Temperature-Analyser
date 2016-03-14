@@ -147,7 +147,7 @@ int max(cl::Context context, cl::CommandQueue queue, cl::Program program)
 	cl::Buffer output(context, CL_MEM_READ_WRITE, outputSize);
 
 	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTempTemp[0]);
-	queue.enqueueFillBuffer(output, 0, 0, outputSize);
+	queue.enqueueFillBuffer(output, INT_MIN, 0, outputSize);
 
 	cl::Kernel kernel = cl::Kernel(program, "Max");
 	kernel.setArg(0, inputBuffer);
@@ -205,14 +205,6 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, int min, int max, int bins)
 {
 	size_t localSize = bins; 
-	int range = max - min;
-	float step = range / bins;
-	vector<float> steps(bins);
-	for (int i = 1; i <= bins; i++)
-	{
-		steps.at(i - 1) = min + step * i;
-	}
-	if (steps.at(bins-1) != max) { steps.at(bins-1) = max+1; }
 
 	vector<int> tempTempTemp = tempTemp;
 	size_t paddingSize = tempTempTemp.size() % bins;
@@ -221,7 +213,7 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 
 	if (paddingSize)
 	{
-		std::vector<int> temp(localSize - paddingSize, min);
+		std::vector<int> temp(localSize - paddingSize, 999999);
 		tempTempTemp.insert(tempTempTemp.end(), temp.begin(), temp.end());
 	}
 
@@ -230,26 +222,22 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 
 	std::vector<int> hisogram(bins);
 	size_t histoSize = bins * sizeof(int);
-	size_t stepSize = bins * sizeof(float);
 
 	cl::Buffer inputBuffer(context, CL_MEM_READ_ONLY, inputSize);
 	cl::Buffer histoBuffer(context, CL_MEM_READ_WRITE, histoSize);
-	cl::Buffer stepBuffer(context, CL_MEM_READ_ONLY, stepSize);
 
 	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTemp[0]);
 	queue.enqueueFillBuffer(histoBuffer, 0, 0, histoSize);
-	queue.enqueueWriteBuffer(stepBuffer, CL_TRUE, 0, stepSize, &steps[0]);
-
+	
 	cl::Kernel kernel = cl::Kernel(program, "hist");
 	kernel.setArg(0, inputBuffer);
 	kernel.setArg(1, cl::Local(localSize*sizeof(int)));
 	kernel.setArg(2, histoBuffer);
-	kernel.setArg(3, stepBuffer);
+	kernel.setArg(3, bins);
+	kernel.setArg(4, ((float)min/(float)10)*-1);
 
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(inputElements), cl::NDRange(bins));
 	queue.enqueueReadBuffer(histoBuffer, CL_TRUE, 0, histoSize, &hisogram[0]);
-
-	//hisogram.at(0) = hisogram.at(0) - paddingSize;
 
 	cout << hisogram << endl;
 }
