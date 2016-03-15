@@ -1,4 +1,4 @@
-﻿Build started 14/03/2016 17:44:06.
+﻿Build started 15/03/2016 15:50:28.
      1>Project "D:\Documents\GitHub\Parallel Assignmemt\Parallel Assignmemt\Parallel Assignmemt.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\include" /ZI /nologo /W3 /WX- /sdl /Od /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"x64\Debug\\" /Fd"x64\Debug\vc140.pdb" /Gd /TP /errorReport:prompt Source.cpp
@@ -6,9 +6,10 @@
      1>d:\documents\github\parallel assignmemt\parallel assignmemt\source.cpp(29): warning C4101: 'newTemp': unreferenced local variable
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"D:\Documents\GitHub\Parallel Assignmemt\x64\Debug\Parallel Assignmemt.exe" /INCREMENTAL /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\lib\x64" OpenCL.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"D:\Documents\GitHub\Parallel Assignmemt\x64\Debug\Parallel Assignmemt.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\Documents\GitHub\Parallel Assignmemt\x64\Debug\Parallel Assignmemt.lib" /MACHINE:X64 x64\Debug\Source.obj
+         LINK : D:\Documents\GitHub\Parallel Assignmemt\x64\Debug\Parallel Assignmemt.exe not found or not built by the last incremental link; performing full link
          Parallel Assignmemt.vcxproj -> D:\Documents\GitHub\Parallel Assignmemt\x64\Debug\Parallel Assignmemt.exe
      1>Done Building Project "D:\Documents\GitHub\Parallel Assignmemt\Parallel Assignmemt\Parallel Assignmemt.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:01.39
+Time Elapsed 00:00:05.16

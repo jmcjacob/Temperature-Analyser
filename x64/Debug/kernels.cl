@@ -69,6 +69,12 @@ __kernel void hist(__global const int* A, __local int* H, __global int* Histogra
 {
 	int id = get_global_id(0);
 	int lid = get_local_id(0);
+	int index = A[id];
+
+	if (index == 999999)
+	{
+		return;
+	}
 
 	for (int i = 0; i < nuBins; i++)
 	{
@@ -76,18 +82,10 @@ __kernel void hist(__global const int* A, __local int* H, __global int* Histogra
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	int index = A[id];
+	int bin = floor((index - min) / ((max-min) / nuBins));
 
-	if (index == 999999)
-	{
-		return;
-	}
-	int thingy = (max-min)/nuBins;
-	int bin = (index * thingy) - min;
-
-	//int bin = index - min;
-	//bin *= nuBins;
-	//bin /= (max-min)+ min;
+	if (index == max)
+		bin--;
 
 	atomic_inc(&H[bin]);
 
