@@ -99,7 +99,7 @@ int min(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	// Sets vector, local size and padding size
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 64; 
+	size_t localSize = 256; 
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	// Adds padding to the vector
@@ -147,7 +147,7 @@ int max(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	// Sets vector, local size and padding size
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 64; // For now
+	size_t localSize = 256; // For now
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	// Adds padding to the vector
@@ -195,7 +195,7 @@ void average(cl::Context context, cl::CommandQueue queue, cl::Program program)
 {
 	// Sets vector, local size and padding size
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 64; 
+	size_t localSize = 256; 
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	// Gets size of vector before padding to get accurate average
@@ -246,7 +246,7 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 {
 	// Sets vector, local size and padding size
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 64;
+	size_t localSize = 10;
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	// Adds padding to the vector
@@ -269,7 +269,7 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 	cl::Buffer histoBuffer(context, CL_MEM_READ_WRITE, histoSize);
 
 	// Moves buffer to the GPU
-	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTemp[0]);
+	queue.enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, inputSize, &tempTempTemp[0]);
 	queue.enqueueFillBuffer(histoBuffer, 0, 0, histoSize);
 	
 	// Sets the kernel and the arguments for the kernel

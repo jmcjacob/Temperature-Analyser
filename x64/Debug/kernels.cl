@@ -94,13 +94,13 @@ __kernel void hist(__global const int* A, __local int* H, __global int* Histogra
 	if (lid < nuBins)
 		H[lid] = 0;
 
+	barrier(CLK_LOCAL_MEM_FENCE);
+
 	// Skips any padding
 	if (index == 999999)
 	{
 		return;
 	}
-
-	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Calculate the bin number to increment
 	int bin = (index - min) / ((max-min) / nuBins);
@@ -109,16 +109,14 @@ __kernel void hist(__global const int* A, __local int* H, __global int* Histogra
 		bin--;
 
 	// Increments the local histogram
+	
 	atomic_inc(&H[bin]);
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Combines each local histogram to global histogram
-	if (!lid)
+	if (lid < nuBins)
 	{
-		for (int i = 0; i < nuBins; i++)
-		{
-			atomic_add(&Histogram[i], H[i]);
-		}
+		atomic_add(&Histogram[lid], H[lid]);
 	}
 }
