@@ -246,7 +246,7 @@ void hisogram(cl::Context context, cl::CommandQueue queue, cl::Program program, 
 {
 	// Sets vector, local size and padding size
 	vector<int> tempTempTemp = tempTemp;
-	size_t localSize = 10;
+	size_t localSize = 258;
 	size_t paddingSize = tempTempTemp.size() % localSize;
 
 	// Adds padding to the vector
