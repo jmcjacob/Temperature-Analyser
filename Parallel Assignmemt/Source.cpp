@@ -19,7 +19,7 @@ void readData(string file, string location, int year, int month, int day, int ti
 	// Specifes varibles for use in method
 	string item, line;
 	ifstream dataFile(file);
-	int count = 0, temp = 0;
+	int count = 0;
 
 	// Checks if file is open
 	if (dataFile.is_open())
@@ -65,7 +65,7 @@ void readData(string file, string location, int year, int month, int day, int ti
 					count++;
 					break;
 				case 5:
-					temp = (int)(stof(item)*10);
+					newTemp = (int)(stof(item)*10);
 					if (write)
 					{
 						tempLocation.push_back(newLocation);
@@ -73,7 +73,7 @@ void readData(string file, string location, int year, int month, int day, int ti
 						tempMonth.push_back(newMonth);
 						tempDay.push_back(newDay);
 						tempTime.push_back(newTime);
-						tempTemp.push_back(temp);
+						tempTemp.push_back(newTemp);
 					}
 					count = 0;
 					break;
